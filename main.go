@@ -9,7 +9,7 @@ import (
 
 func main() {
 	router := http.NewServeMux()
-	router.Handle("/user", zone.GetRouter())
+	router.Handle("/zone", zone.GetRouter())
 
 	server := http.Server{
 		Addr:    ":3000",
