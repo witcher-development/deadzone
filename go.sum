@@ -1,3 +1,5 @@
+github.com/a-h/templ v0.2.778 h1:VzhOuvWECrwOec4790lcLlZpP4Iptt5Q4K9aFxQmtaM=
+github.com/a-h/templ v0.2.778/go.mod h1:lq48JXoUvuQrU0VThrK31yFwdRjTCnIE5bcPCM9IP1w=
 github.com/ncruces/go-sqlite3 v0.18.3 h1:tyMa75uh7LcINcfo0WrzOvcTkfz8Hqu0TEPX+KVyes4=
 github.com/ncruces/go-sqlite3 v0.18.3/go.mod h1:HAwOtA+cyEX3iN6YmkpQwfT4vMMgCB7rQRFUdOgEFik=
 github.com/ncruces/julianday v1.0.0 h1:fH0OKwa7NWvniGQtxdJRxAgkBMolni2BjDHaWTxqt7M=

@@ -1,3 +1,10 @@
 body {
 	margin: 0;
 }
+
+
+
+.zone-tile {
+	padding: 5;
+	border: 1px solid #000;
+}

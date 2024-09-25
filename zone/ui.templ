@@ -1,0 +1,9 @@
+package zone
+
+import "fmt"
+
+templ Tile(z *Zone) {
+<div class="zone-tile">
+	{ fmt.Sprintf("%d", z.Id) }
+</div>
+}

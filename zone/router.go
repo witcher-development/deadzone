@@ -1,6 +1,7 @@
 package zone
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 )
@@ -15,6 +16,10 @@ func GetRouter() *http.ServeMux {
 			return
 		}
 		fmt.Fprintf(w, "good: %d", id)
+	})
+
+	router.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+		Tile(&Zone{Id: 3}).Render(context.Background(), w)
 	})
 
 	return router
