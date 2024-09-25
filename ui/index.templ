@@ -12,13 +12,11 @@ templ index() {
 		<script src="https://unpkg.com/htmx.org@2.0.2"></script>
 	</head>
 	<body>
-		<h1>hi</h1>
-
+		<div id="map"></div>
+		
 		<div id="sidebar">
 			@zone.Tile(&zone.Zone{Id: 2})
 		</div>
-
-		<button hx-get="/zone" hx-target="#sidebar" hx-swap="innerHTML">Get new Zone</button>
 	</body>
 </html>
 }
