@@ -1,5 +1,8 @@
 package frontendlib
 
+import "github.com/witcher-development/deadzone/modules/frontend_lib/canvas_map"
+
+
 templ Page() {
 	<html>
 		<head>
@@ -7,6 +10,7 @@ templ Page() {
 		</head>
 		<body hx-ext="response-targets">
 			{ children... }
+			@canvasmap.Map()
 			<script src="/static/index.js"></script>
 			<script src="https://unpkg.com/htmx.org@2.0.4"></script>
 			<script src="https://unpkg.com/htmx-ext-response-targets@2.0.2" crossorigin="anonymous"></script>
