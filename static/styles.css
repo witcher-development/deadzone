@@ -1,0 +1,17 @@
+* {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+	background-color: black;
+	color: white;
+}
+
+a {
+	color: white
+}
+
+:root {
+	--modal-width: 500px
+}
