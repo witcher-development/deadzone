@@ -1,28 +1,42 @@
 /**
  * @typedef {Object} Coord
  * @property {number} x
+ * @property {number} xTileOff
  * @property {number} y
+ * @property {number} yTileOff
  * @property {number} z
  */
 
 /** @type Coord */
 const DEFAULT_COORDS = {
 	x: 17.1250631,
+	xTileOff: 0,
 	y: 48.1435711,
+	yTileOff: 0,
 	z: 15
 }
+
+const TILE_SIZE = 256
 
 // https://tile.openstreetmap.org/{z}/{x}/{y}.png
 /**
  * @param {Coord} coord 
+ * @returns {Coord}
  */
 // TODO: handle biggest zooms
 function latLonToTile({ x, y, z }) {
-  const latRad = y * Math.PI / 180;
-  const n = Math.pow(2, z);
-  const x1 = Math.floor((x + 180) / 360 * n);
-  const y1 = Math.floor((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n);
-  return { x: x1, y: y1, z };
+	const n = Math.pow(2, z);
+
+	const xTileAbs = (x + 180) / 360 * n
+	const xTile = Math.floor(xTileAbs);
+	const xTileOff = Math.floor((xTileAbs - xTile) * TILE_SIZE)
+
+	const latRad = y * Math.PI / 180;
+	const yTileAbs = (1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n
+	const yTile = Math.floor(yTileAbs);
+	const yTileOff = Math.floor((yTileAbs - yTile) * TILE_SIZE)
+
+	return { x: xTile, xTileOff, y: yTile, yTileOff, z };
 }
 
 const canvas = /** @type HTMLCanvasElement */ (document.querySelector("#map"))
@@ -37,35 +51,47 @@ function render() {
 	ctx.fillRect(0, 0, W, H)
 
 	const firstTile = latLonToTile(DEFAULT_COORDS)
+	const X_TILE_OFF = firstTile.xTileOff
+	const Y_TILE_OFF = firstTile.yTileOff
 	getTileData(firstTile, (image) => {
-		ctx.drawImage(image, W/2 - 128, H/2 - 128)
+		ctx.drawImage(image, W/2 - X_TILE_OFF, H/2 - Y_TILE_OFF)
 	})
-	drawTop(W/2 - 128, H, Object.assign({}, firstTile))
-	drawBottom(W/2 - 128, H, Object.assign({}, firstTile))
+	drawTop(W/2 - X_TILE_OFF, H, Y_TILE_OFF, Object.assign({}, firstTile))
+	drawBottom(W/2 - X_TILE_OFF, H, Y_TILE_OFF, Object.assign({}, firstTile))
 
 	const leftCursor = Object.assign({}, firstTile)
 	// move left
-	for (let i = 128; i < W / 2 + 128; i += 256) {
+	for (let i = X_TILE_OFF; i < W / 2 + X_TILE_OFF; i += TILE_SIZE) {
 		leftCursor.x -= 1
-		const w = W/2 - i - 256
+		const w = W/2 - i - TILE_SIZE
 		getTileData(leftCursor, (image) => {
-			ctx.drawImage(image, w, H/2 - 128)
+			ctx.drawImage(image, w, H/2 - Y_TILE_OFF)
 		})
-		drawTop(w, H, Object.assign({}, leftCursor))
-		drawBottom(w, H, Object.assign({}, leftCursor))
+		drawTop(w, H, Y_TILE_OFF, Object.assign({}, leftCursor))
+		drawBottom(w, H, Y_TILE_OFF, Object.assign({}, leftCursor))
 	}
 
 	const rightCursor = Object.assign({}, firstTile)
 	// move right
-	for (let i = 128; i < W / 2 + 128; i += 256) {
+	for (let i = TILE_SIZE - X_TILE_OFF; i < W / 2 + X_TILE_OFF; i += TILE_SIZE) {
 		rightCursor.x += 1
 		const w = W/2 + i
 		getTileData(rightCursor, (image) => {
-			ctx.drawImage(image, w, H/2 - 128)
+			ctx.drawImage(image, w, H/2 - Y_TILE_OFF)
 		})
-		drawTop(w, H, Object.assign({}, rightCursor))
-		drawBottom(w, H, Object.assign({}, rightCursor))
+		drawTop(w, H, Y_TILE_OFF, Object.assign({}, rightCursor))
+		drawBottom(w, H, Y_TILE_OFF, Object.assign({}, rightCursor))
 	}
+
+	setTimeout(() => {
+		ctx.moveTo(W/2, 0)
+		ctx.lineTo(W/2, H)
+		ctx.stroke()
+
+		ctx.moveTo(0, H/2)
+		ctx.lineTo(W, H/2)
+		ctx.stroke()
+	}, 300)
 }
 
 render()
@@ -74,13 +100,14 @@ render()
 /**
  * @param {number} W
  * @param {number} H 
+ * @param {number} yOff
  * @param {Coord} cursor
  */
-function drawTop(W, H, cursor) {
-	for (let i = 128; i < H / 2 + 128; i += 256) {
+function drawTop(W, H, yOff, cursor) {
+	for (let i = yOff; i < H / 2 + yOff; i += TILE_SIZE) {
 		cursor.y -= 1
 		getTileData(cursor, (image) => {
-			ctx.drawImage(image, W, H/2 - i - 256)
+			ctx.drawImage(image, W, H/2 - i - TILE_SIZE)
 		})
 	}
 }
@@ -88,10 +115,11 @@ function drawTop(W, H, cursor) {
 /**
  * @param {number} W
  * @param {number} H 
+ * @param {number} yOff
  * @param {Coord} cursor
  */
-function drawBottom(W, H, cursor) {
-	for (let i = 128; i < H / 2 + 128; i += 256) {
+function drawBottom(W, H, yOff, cursor) {
+	for (let i = TILE_SIZE - yOff; i < H / 2 + yOff; i += TILE_SIZE) {
 		cursor.y += 1
 		getTileData(cursor, (image) => {
 			ctx.drawImage(image, W, H/2 + i)
@@ -100,13 +128,13 @@ function drawBottom(W, H, cursor) {
 }
 
 
-
 /**
  * @param {Coord} coord 
  * @param {(image: HTMLImageElement) => void} callback
  */
 function getTileData({ x, y, z }, callback) {
 	const image = new Image()
+	// Cache-Control: max-age=31536000
 	image.onload = () => callback(image)
 	image.src = `https://tile.openstreetmap.org/${z}/${x}/${y}.png`
 }
