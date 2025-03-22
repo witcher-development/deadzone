@@ -29,7 +29,7 @@ func Map() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<canvas id=\"map\" class=\"absolute w-full h-fullhttps://tile.openstreetmap.org/{z}/{x}/{y}.png\"></canvas><script src=\"/static/map.js\"></script>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<canvas id=\"map\" class=\"\"></canvas><script src=\"/static/map.js\"></script>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
