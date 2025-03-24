@@ -13,7 +13,12 @@ func main() {
   db.InitDB()
 
   r := gin.Default()
-  r.Static("/static", "./static")
+  static := r.Group("/")
+  static.Use(func(c *gin.Context) {
+    c.Writer.Header().Set("Cache-Control", "public, max-age=0, immutable")
+  })
+  static.Static("/static", "./static")
+
   r.GET("", func(ctx *gin.Context) {
     frontendlib.Page().Render(context.Background(), ctx.Writer)
   })
