@@ -162,11 +162,21 @@ canvas.addEventListener("mousemove", (e) => {
 canvas.addEventListener("mouseup", (e) => {
 	if (!drag.drag || (drag.x === e.clientX && drag.y === e.clientY)) return
 
-	const xCoordShift = 360/(Math.pow(2, DEFAULT_COORDS.z) * TILE_SIZE) * (drag.x - e.clientX)
-	const yCoordShift = 180/(Math.pow(2, DEFAULT_COORDS.z) * TILE_SIZE) * (e.clientY - drag.y)
+	const dx = drag.x - e.clientX
+	const dy = e.clientY - drag.y
+
+	const xCoordShift = 360/(Math.pow(2, DEFAULT_COORDS.z) * TILE_SIZE) * dx
+
+	const firstTile = latLonToTile(DEFAULT_COORDS)
+	const currentYinPix = firstTile.y * TILE_SIZE + firstTile.yTileOff
+	const newYinPix = currentYinPix - dy
+
+	const d = 180 / Math.PI
+	const latRad = Math.PI * (1 - 2 * newYinPix / (Math.pow(2, DEFAULT_COORDS.z) * TILE_SIZE));
+	const yNew = (2 * Math.atan(Math.exp(latRad)) - Math.PI / 2) * d;
 
 	DEFAULT_COORDS.x += xCoordShift
-	DEFAULT_COORDS.y += yCoordShift
+	DEFAULT_COORDS.y = yNew
 
 	render()
 
