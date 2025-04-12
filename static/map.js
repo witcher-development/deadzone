@@ -1,3 +1,12 @@
+navigator.serviceWorker.getRegistrations().then(function(registrations) {
+ for(let registration of registrations) {
+  registration.unregister()
+} })
+function registerServiceWorker () {
+	navigator.serviceWorker.register('static/sw.js', { scope: './' })
+};
+registerServiceWorker()
+
 /**
  * @typedef {Object} Coord
  * @property {number} x
@@ -151,15 +160,31 @@ function drawBottom(W, H, yOff, cursor) {
 }
 
 
+/** @type Cache */
+let cache
+
 /**
  * @param {Coord} coord 
- * @param {(image: HTMLImageElement) => void} callback
+ * @param {(image: HTMLImageElement | ImageBitmap) => void} callback
  */
-function getTileData({ x, y, z }, callback) {
-	const image = new Image()
-	// Cache-Control: max-age=31536000
-	image.onload = () => callback(image)
-	image.src = `https://tile.openstreetmap.org/${z}/${x}/${y}.png`
+async function getTileData({ x, y, z }, callback) {
+	if (!cache) {
+		cache = await caches.open("tiles")
+	}
+
+	const url = `https://tile.openstreetmap.org/${z}/${x}/${y}.png`
+	const match = await cache.match(url)
+	if (match) {
+		console.log('hit')
+		const blob = await match.blob()
+		const bitmap = await window.createImageBitmap(blob)
+		callback(bitmap)
+	} else {
+		console.log('miss')
+		const image = new Image()
+		image.onload = () => callback(image)
+		image.src = url
+	}
 }
 
 render()
@@ -228,3 +253,5 @@ canvas.addEventListener("mouseout", (e) => {
 	drag.y = 0
 	canvas.style.transform = ""
 })
+
+// fetch("/")

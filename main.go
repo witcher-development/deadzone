@@ -16,6 +16,8 @@ func main() {
   static := r.Group("/")
   static.Use(func(c *gin.Context) {
     c.Writer.Header().Set("Cache-Control", "public, max-age=0, immutable")
+    // TODO: only apply to SW
+    c.Writer.Header().Set("Service-Worker-Allowed", "/")
   })
   static.Static("/static", "./static")
 

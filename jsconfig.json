@@ -6,6 +6,7 @@
     "target": "ESNext",
     "module": "ESNext",
     "strictNullChecks": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "lib": ["dom", "webworker", "esnext"]
   }
 }
