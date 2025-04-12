@@ -16,14 +16,13 @@ const DEFAULT_COORDS = {
 	z: 15
 }
 
+const DEBUG = true
 const TILE_SIZE = 256
 
-// https://tile.openstreetmap.org/{z}/{x}/{y}.png
 /**
  * @param {Coord} coord 
  * @returns {Coord}
  */
-// TODO: handle biggest zooms
 function latLonToTile({ x, y, z }) {
 	const n = Math.pow(2, z);
 
@@ -39,6 +38,36 @@ function latLonToTile({ x, y, z }) {
 	return { x: xTile, xTileOff, y: yTile, yTileOff, z };
 }
 
+/**
+ * @param {number} W
+ * @param {number} H 
+ * @param {number} xOff
+ * @param {number} yOff
+ */
+function debugGrid(W, H, xOff, yOff) {
+	ctx.strokeStyle = "#000"
+
+	const firstX = W/2 - xOff
+	const firstY = H/2 - yOff
+
+	const xOffFromScreenCorner = firstX % TILE_SIZE
+	const yOffFromScreenCorner = firstY % TILE_SIZE
+
+	// draw long
+	for (let x = xOffFromScreenCorner; x < W; x += TILE_SIZE) {
+		ctx.moveTo(x, 0)
+		ctx.lineTo(x, H)
+		ctx.stroke()
+	}
+
+	// draw lat
+	for (let y = yOffFromScreenCorner; y < H; y += TILE_SIZE) {
+		ctx.moveTo(0, y)
+		ctx.lineTo(W, y)
+		ctx.stroke()
+	}
+}
+
 const canvas = /** @type HTMLCanvasElement */ (document.querySelector("#map"))
 const ctx = /** @type CanvasRenderingContext2D */ (canvas.getContext("2d"))
 
@@ -47,8 +76,8 @@ function render() {
 	const H = document.body.clientHeight * 2
 	canvas.width = W
 	canvas.height = H
-	ctx.fillStyle = "#000"
-	ctx.fillRect(0, 0, W, H)
+	// ctx.fillStyle = "#000"
+	// ctx.fillRect(0, 0, W, H)
 
 	const firstTile = latLonToTile(DEFAULT_COORDS)
 	const X_TILE_OFF = firstTile.xTileOff
@@ -56,6 +85,7 @@ function render() {
 	getTileData(firstTile, (image) => {
 		ctx.drawImage(image, W/2 - X_TILE_OFF, H/2 - Y_TILE_OFF)
 	})
+
 	drawTop(W/2 - X_TILE_OFF, H, Y_TILE_OFF, Object.assign({}, firstTile))
 	drawBottom(W/2 - X_TILE_OFF, H, Y_TILE_OFF, Object.assign({}, firstTile))
 
@@ -82,16 +112,12 @@ function render() {
 		drawTop(w, H, Y_TILE_OFF, Object.assign({}, rightCursor))
 		drawBottom(w, H, Y_TILE_OFF, Object.assign({}, rightCursor))
 	}
+	if (DEBUG) {
+		setTimeout(() => {
+			debugGrid(W, H, X_TILE_OFF, Y_TILE_OFF)
+		}, 2000)
+	}
 
-	// setTimeout(() => {
-	// 	ctx.moveTo(W/2, 0)
-	// 	ctx.lineTo(W/2, H)
-	// 	ctx.stroke()
-	//
-	// 	ctx.moveTo(0, H/2)
-	// 	ctx.lineTo(W, H/2)
-	// 	ctx.stroke()
-	// }, 300)
 }
 
 /**
