@@ -16,7 +16,7 @@ const DEFAULT_COORDS = {
 	z: 15
 }
 
-const DEBUG = true
+const DEBUG = false
 const TILE_SIZE = 256
 
 /**
@@ -150,17 +150,26 @@ function drawBottom(W, H, yOff, cursor) {
 	}
 }
 
+/** @type Map<string, ImageBitmap> */
+const cache = new Map()
 
 /**
  * @param {Coord} coord 
- * @param {(image: HTMLImageElement) => void} callback
+ * @param {(image: HTMLImageElement | ImageBitmap) => void} callback
  */
 function getTileData({ x, y, z }, callback) {
-	const image = new Image()
-	// Cache-Control: max-age=31536000
-	image.onload = () => callback(image)
-	// image.src = `https://tile.openstreetmap.org/${z}/${x}/${y}.png`
-	image.src = `/tile/${z}/${x}/${y}`
+	const key = `${x}-${y}-${z}`
+	if (cache.has(key)) {
+		callback(cache.get(key))
+		return
+	}
+	fetch(`/tile/${z}/${x}/${y}`)
+		.then(res => res.blob())
+		.then(window.createImageBitmap)
+		.then((bitmap) => {
+			callback(bitmap)
+			cache.set(key, bitmap)
+		})
 }
 
 render()
