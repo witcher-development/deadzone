@@ -159,7 +159,8 @@ function getTileData({ x, y, z }, callback) {
 	const image = new Image()
 	// Cache-Control: max-age=31536000
 	image.onload = () => callback(image)
-	image.src = `https://tile.openstreetmap.org/${z}/${x}/${y}.png`
+	// image.src = `https://tile.openstreetmap.org/${z}/${x}/${y}.png`
+	image.src = `/tile/${z}/${x}/${y}`
 }
 
 render()
