@@ -238,3 +238,31 @@ canvas.addEventListener("mouseout", (e) => {
 	drag.y = 0
 	canvas.style.transform = ""
 })
+
+/**
+ * @template {unknown[]} T
+ * @param {(...args: T) => void} callback
+ * @param {number} interval
+ * @returns {(...args: T) => void}
+ */
+function debounce (callback, interval) {
+	let canRun = true
+	return function (...args) {
+		if (!canRun) return
+		canRun = false
+		callback(...args)
+		setTimeout(() => {
+			canRun = true
+		}, interval)
+	}
+}
+
+canvas.addEventListener("wheel", debounce((e) => {
+	if (e.deltaY > 0 && DEFAULT_COORDS.z > 8) {
+		DEFAULT_COORDS.z -= 1
+		render()
+	} else if (e.deltaY < 0 && DEFAULT_COORDS.z < 19) {
+		DEFAULT_COORDS.z += 1
+		render()
+	}
+}, 300))
