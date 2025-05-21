@@ -258,7 +258,7 @@ function debounce (callback, interval) {
 }
 
 canvas.addEventListener("wheel", debounce((e) => {
-	if (e.deltaY > 0 && DEFAULT_COORDS.z > 8) {
+	if (e.deltaY > 0 && DEFAULT_COORDS.z > 13) {
 		DEFAULT_COORDS.z -= 1
 		render()
 	} else if (e.deltaY < 0 && DEFAULT_COORDS.z < 19) {
