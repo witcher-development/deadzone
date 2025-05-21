@@ -16,7 +16,16 @@ const DEFAULT_COORDS = {
 	z: 15
 }
 
-const DEBUG = false
+/**
+ * @typedef {{ editing: false } | {editing: true, polygon: [number, number][]}} EditingState
+ */
+
+/** @type EditingState */
+let EDITING_STATE = {
+	editing: false,
+}
+
+const DEBUG = true
 const TILE_SIZE = 256
 
 /**
@@ -182,6 +191,7 @@ const drag = {
 }
 
 canvas.addEventListener("mousedown", (e) => {
+	if (EDITING_STATE.editing) return
 	drag.drag = true
 	drag.x = e.clientX
 	drag.y = e.clientY
@@ -239,6 +249,69 @@ canvas.addEventListener("mouseout", (e) => {
 	canvas.style.transform = ""
 })
 
+canvas.addEventListener('click', (e) => {
+	if (!EDITING_STATE.editing) return
+	const { x, y } = pixToGeo(e.clientX, e.clientY)
+	EDITING_STATE.polygon.push([x, y])
+})
+
+
+canvas.addEventListener("wheel", debounce((e) => {
+	if (e.deltaY > 0 && DEFAULT_COORDS.z > 13) {
+		DEFAULT_COORDS.z -= 1
+		render()
+	} else if (e.deltaY < 0 && DEFAULT_COORDS.z < 19) {
+		DEFAULT_COORDS.z += 1
+		render()
+	}
+}, 300))
+
+
+document.querySelector("#edit").addEventListener('click', () => {
+	if (EDITING_STATE.editing) {
+		EDITING_STATE = {
+			editing: false,
+		}
+	} else {
+		EDITING_STATE = {
+			editing: true,
+			polygon: []
+		}
+	}
+})
+
+/**
+ * @param {number} x
+ * @param {number} y
+ * @return {{ x: number, y: number }}
+ */
+function pixToGeo(x, y) {
+	const W = document.body.clientWidth
+	const H = document.body.clientHeight
+
+	const firstTile = latLonToTile(DEFAULT_COORDS)
+
+	const centerX = W/2
+	const centerY = H/2
+
+	const dx = x - centerX
+	const dy = centerY - y
+
+	const xCoordShift = 360/(Math.pow(2, DEFAULT_COORDS.z) * TILE_SIZE) * dx
+
+	const currentYinPix = firstTile.y * TILE_SIZE + firstTile.yTileOff
+	const newYinPix = currentYinPix - dy
+
+	const d = 180 / Math.PI
+	const latRad = Math.PI * (1 - 2 * newYinPix / (Math.pow(2, DEFAULT_COORDS.z) * TILE_SIZE));
+	const yNew = (2 * Math.atan(Math.exp(latRad)) - Math.PI / 2) * d;
+
+	return {
+		x: DEFAULT_COORDS.x + xCoordShift,
+		y: yNew
+	}
+}
+
 /**
  * @template {unknown[]} T
  * @param {(...args: T) => void} callback
@@ -256,13 +329,3 @@ function debounce (callback, interval) {
 		}, interval)
 	}
 }
-
-canvas.addEventListener("wheel", debounce((e) => {
-	if (e.deltaY > 0 && DEFAULT_COORDS.z > 13) {
-		DEFAULT_COORDS.z -= 1
-		render()
-	} else if (e.deltaY < 0 && DEFAULT_COORDS.z < 19) {
-		DEFAULT_COORDS.z += 1
-		render()
-	}
-}, 300))
