@@ -5,7 +5,14 @@
  * @property {number} y
  * @property {number} yTileOff
  * @property {number} z
+ *
+ * @typedef {[number, number][]} Zone
+ *
+ * @typedef {{ editing: false } | {editing: true, polygon: Zone}} EditingState
  */
+
+const DEBUG = false
+const TILE_SIZE = 256
 
 /** @type Coord */
 const DEFAULT_COORDS = {
@@ -16,79 +23,32 @@ const DEFAULT_COORDS = {
 	z: 15
 }
 
-/**
- * @typedef {{ editing: false } | {editing: true, polygon: [number, number][]}} EditingState
- */
-
 /** @type EditingState */
 let EDITING_STATE = {
 	editing: false,
 }
 
-const DEBUG = true
-const TILE_SIZE = 256
-
-/**
- * @param {Coord} coord 
- * @returns {Coord}
- */
-function latLonToTile({ x, y, z }) {
-	const n = Math.pow(2, z);
-
-	const xTileAbs = (x + 180) / 360 * n
-	const xTile = Math.floor(xTileAbs);
-	const xTileOff = Math.floor((xTileAbs - xTile) * TILE_SIZE)
-
-	const latRad = y * Math.PI / 180;
-	const yTileAbs = (1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n
-	const yTile = Math.floor(yTileAbs);
-	const yTileOff = Math.floor((yTileAbs - yTile) * TILE_SIZE)
-
-	return { x: xTile, xTileOff, y: yTile, yTileOff, z };
+const DRAG_STATE = {
+	drag: false,
+	x: 0,
+	y: 0
 }
 
-/**
- * @param {number} W
- * @param {number} H 
- * @param {number} xOff
- * @param {number} yOff
- */
-function debugGrid(W, H, xOff, yOff) {
-	ctx.strokeStyle = "#000"
-
-	const firstX = W/2 - xOff
-	const firstY = H/2 - yOff
-
-	const xOffFromScreenCorner = firstX % TILE_SIZE
-	const yOffFromScreenCorner = firstY % TILE_SIZE
-
-	// draw long
-	for (let x = xOffFromScreenCorner; x < W; x += TILE_SIZE) {
-		ctx.moveTo(x, 0)
-		ctx.lineTo(x, H)
-		ctx.stroke()
-	}
-
-	// draw lat
-	for (let y = yOffFromScreenCorner; y < H; y += TILE_SIZE) {
-		ctx.moveTo(0, y)
-		ctx.lineTo(W, y)
-		ctx.stroke()
-	}
-}
+/** @type Map<string, ImageBitmap> */
+const cache = new Map()
 
 const canvas = /** @type HTMLCanvasElement */ (document.querySelector("#map"))
 const ctx = /** @type CanvasRenderingContext2D */ (canvas.getContext("2d"))
+const canvasEditing = /** @type HTMLCanvasElement */ (document.querySelector("#editing"))
+const ctxEditing = /** @type CanvasRenderingContext2D */ (canvasEditing.getContext("2d"))
 
 function render() {
 	const W = document.body.clientWidth * 2
 	const H = document.body.clientHeight * 2
 	canvas.width = W
 	canvas.height = H
-	// ctx.fillStyle = "#000"
-	// ctx.fillRect(0, 0, W, H)
 
-	const firstTile = latLonToTile(DEFAULT_COORDS)
+	const firstTile = geoToTile(DEFAULT_COORDS)
 	const X_TILE_OFF = firstTile.xTileOff
 	const Y_TILE_OFF = firstTile.yTileOff
 	getTileData(firstTile, (image) => {
@@ -159,8 +119,231 @@ function drawBottom(W, H, yOff, cursor) {
 	}
 }
 
-/** @type Map<string, ImageBitmap> */
-const cache = new Map()
+/**
+ * @param {Zone} zone
+ * @param {CanvasRenderingContext2D} canvas
+ * @param {number} W
+ * @param {number} H
+ */
+function drawZone(zone, canvas, W, H) {
+	zone.forEach(([x, y], i) => {
+		const point = geoToPix(x, y)
+		if (i === 0) {
+			canvas.moveTo(point.x + W/2, point.y + H/2)
+			return
+		}
+		canvas.lineTo(point.x + W/2, point.y + H/2)
+		canvas.stroke()
+	})
+}
+
+render()
+
+canvas.addEventListener("mousedown", (e) => {
+	if (EDITING_STATE.editing) return
+	DRAG_STATE.drag = true
+	DRAG_STATE.x = e.clientX
+	DRAG_STATE.y = e.clientY
+})
+
+canvas.addEventListener("mousemove", (e) => {
+	if (!DRAG_STATE.drag) return
+	const diffX = e.clientX - DRAG_STATE.x
+	const diffY = e.clientY - DRAG_STATE.y
+
+	canvas.style.transform=`translate(${diffX}px, ${diffY}px)`
+})
+
+canvas.addEventListener("mouseup", (e) => {
+	if (!DRAG_STATE.drag || (DRAG_STATE.x === e.clientX && DRAG_STATE.y === e.clientY)) return
+
+	const dx = DRAG_STATE.x - e.clientX
+	const dy = e.clientY - DRAG_STATE.y
+
+	const xCoordShift = 360/(Math.pow(2, DEFAULT_COORDS.z) * TILE_SIZE) * dx
+
+	const firstTile = geoToTile(DEFAULT_COORDS)
+	const currentYinPix = firstTile.y * TILE_SIZE + firstTile.yTileOff
+	const newYinPix = currentYinPix - dy
+
+	const d = 180 / Math.PI
+	const latRad = Math.PI * (1 - 2 * newYinPix / (Math.pow(2, DEFAULT_COORDS.z) * TILE_SIZE));
+	const yNew = (2 * Math.atan(Math.exp(latRad)) - Math.PI / 2) * d;
+
+	DEFAULT_COORDS.x += xCoordShift
+	DEFAULT_COORDS.y = yNew
+
+	render()
+
+	DRAG_STATE.drag = false
+	DRAG_STATE.x = 0
+	DRAG_STATE.y = 0
+	canvas.style.transform = ""
+})
+
+canvas.addEventListener("mouseout", (e) => {
+	if (!DRAG_STATE.drag) return
+
+	const xCoordShift = 360/(Math.pow(2, DEFAULT_COORDS.z) * TILE_SIZE) * (DRAG_STATE.x - e.clientX)
+	const yCoordShift = 180/(Math.pow(2, DEFAULT_COORDS.z) * TILE_SIZE) * (e.clientY - DRAG_STATE.y)
+
+	DEFAULT_COORDS.x += xCoordShift
+	DEFAULT_COORDS.y += yCoordShift
+
+	render()
+
+	DRAG_STATE.drag = false
+	DRAG_STATE.x = 0
+	DRAG_STATE.y = 0
+	canvas.style.transform = ""
+})
+
+canvas.addEventListener("wheel", debounce((e) => {
+	if (e.deltaY > 0 && DEFAULT_COORDS.z > 13) {
+		DEFAULT_COORDS.z -= 1
+		render()
+	} else if (e.deltaY < 0 && DEFAULT_COORDS.z < 19) {
+		DEFAULT_COORDS.z += 1
+		render()
+	}
+}, 300))
+
+
+document.querySelector("#edit").addEventListener('click', () => {
+	if (EDITING_STATE.editing) {
+		EDITING_STATE = {
+			editing: false,
+		}
+		canvasEditing.style.display = "none"
+
+	} else {
+		const storage = localStorage.getItem('zone')
+		EDITING_STATE = {
+			editing: true,
+			polygon: storage ? JSON.parse(storage) : []
+		}
+		canvasEditing.style.display = "block"
+	}
+})
+
+document.querySelector("#clear")?.addEventListener('click', () => {
+	localStorage.clear('zone')
+})
+
+canvasEditing.addEventListener('click', (e) => {
+	if (!EDITING_STATE.editing) return
+	const { x, y } = pixToGeo(e.clientX, e.clientY)
+	EDITING_STATE.polygon.push([x, y])
+	localStorage.setItem('zone', JSON.stringify(EDITING_STATE.polygon))
+})
+
+canvasEditing.addEventListener("mousemove", (e) => {
+	if (!EDITING_STATE.editing) throw new Error('shouldnt happen')
+
+	renderEditing(e.clientX, e.clientY)
+})
+
+/**
+ * @param {number} mouseX
+ * @param {number} mouseY
+ */
+function renderEditing(mouseX, mouseY) {
+	if (!EDITING_STATE.editing) return
+
+	const W = document.body.clientWidth
+	const H = document.body.clientHeight
+	canvasEditing.width = W
+	canvasEditing.height = H
+
+	ctxEditing.clearRect(0, 0, W, H)
+
+	if (!EDITING_STATE.polygon.length) return
+
+	ctxEditing.strokeStyle = "#000"
+
+	drawZone(EDITING_STATE.polygon, ctxEditing, W, H)
+
+	ctxEditing.lineTo(mouseX, mouseY)
+	ctxEditing.stroke()
+}
+
+/**
+ * @param {number} x
+ * @param {number} y
+ * @return {{ x: number, y: number }}
+ */
+function pixToGeo(x, y) {
+	const W = document.body.clientWidth
+	const H = document.body.clientHeight
+
+	const firstTile = geoToTile(DEFAULT_COORDS)
+
+	const centerX = W/2
+	const centerY = H/2
+
+	const dx = x - centerX
+	const dy = centerY - y
+
+	const xCoordShift = 360/(Math.pow(2, DEFAULT_COORDS.z) * TILE_SIZE) * dx
+
+	const currentYinPix = firstTile.y * TILE_SIZE + firstTile.yTileOff
+	const newYinPix = currentYinPix - dy
+
+	const d = 180 / Math.PI
+	const latRad = Math.PI * (1 - 2 * newYinPix / (Math.pow(2, DEFAULT_COORDS.z) * TILE_SIZE));
+	const yNew = (2 * Math.atan(Math.exp(latRad)) - Math.PI / 2) * d;
+
+	return {
+		x: DEFAULT_COORDS.x + xCoordShift,
+		y: yNew
+	}
+}
+
+/**
+ * Distance to current map center
+ *
+ * @param {number} x
+ * @param {number} y
+ * @return {{ x: number, y: number }}
+ */
+function geoToPix(x, y) {
+	const geoDeltaX = x - DEFAULT_COORDS.x
+
+	const n = Math.pow(2, DEFAULT_COORDS.z);
+	const allPix = n * TILE_SIZE
+	const coeffX = allPix / 360
+
+	const xPix = coeffX * geoDeltaX
+
+	const latRadCurrent = DEFAULT_COORDS.y * Math.PI / 180;
+	const yCurrentCenterPix = (1 - Math.log(Math.tan(latRadCurrent) + 1 / Math.cos(latRadCurrent)) / Math.PI) / 2 * n * TILE_SIZE
+
+	const latRadNew = y * Math.PI / 180;
+	const yGivenPointPix = (1 - Math.log(Math.tan(latRadNew) + 1 / Math.cos(latRadNew)) / Math.PI) / 2 * n * TILE_SIZE
+
+	const yPix = yGivenPointPix - yCurrentCenterPix
+
+	return { x: xPix, y: yPix };
+}
+
+/**
+ * @param {Coord} coord 
+ * @returns {Coord}
+ */
+function geoToTile({ x, y, z }) {
+	const n = Math.pow(2, z);
+
+	const xTileAbs = (x + 180) / 360 * n
+	const xTile = Math.floor(xTileAbs);
+	const xTileOff = Math.floor((xTileAbs - xTile) * TILE_SIZE)
+
+	const latRad = y * Math.PI / 180;
+	const yTileAbs = (1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n
+	const yTile = Math.floor(yTileAbs);
+	const yTileOff = Math.floor((yTileAbs - yTile) * TILE_SIZE)
+
+	return { x: xTile, xTileOff, y: yTile, yTileOff, z };
+}
 
 /**
  * @param {Coord} coord 
@@ -181,134 +364,33 @@ function getTileData({ x, y, z }, callback) {
 		})
 }
 
-render()
-
-
-const drag = {
-	drag: false,
-	x: 0,
-	y: 0
-}
-
-canvas.addEventListener("mousedown", (e) => {
-	if (EDITING_STATE.editing) return
-	drag.drag = true
-	drag.x = e.clientX
-	drag.y = e.clientY
-})
-
-canvas.addEventListener("mousemove", (e) => {
-	if (!drag.drag) return
-	const diffX = e.clientX - drag.x
-	const diffY = e.clientY - drag.y
-
-	canvas.style.transform=`translate(${diffX}px, ${diffY}px)`
-})
-
-canvas.addEventListener("mouseup", (e) => {
-	if (!drag.drag || (drag.x === e.clientX && drag.y === e.clientY)) return
-
-	const dx = drag.x - e.clientX
-	const dy = e.clientY - drag.y
-
-	const xCoordShift = 360/(Math.pow(2, DEFAULT_COORDS.z) * TILE_SIZE) * dx
-
-	const firstTile = latLonToTile(DEFAULT_COORDS)
-	const currentYinPix = firstTile.y * TILE_SIZE + firstTile.yTileOff
-	const newYinPix = currentYinPix - dy
-
-	const d = 180 / Math.PI
-	const latRad = Math.PI * (1 - 2 * newYinPix / (Math.pow(2, DEFAULT_COORDS.z) * TILE_SIZE));
-	const yNew = (2 * Math.atan(Math.exp(latRad)) - Math.PI / 2) * d;
-
-	DEFAULT_COORDS.x += xCoordShift
-	DEFAULT_COORDS.y = yNew
-
-	render()
-
-	drag.drag = false
-	drag.x = 0
-	drag.y = 0
-	canvas.style.transform = ""
-})
-
-canvas.addEventListener("mouseout", (e) => {
-	if (!drag.drag) return
-
-	const xCoordShift = 360/(Math.pow(2, DEFAULT_COORDS.z) * TILE_SIZE) * (drag.x - e.clientX)
-	const yCoordShift = 180/(Math.pow(2, DEFAULT_COORDS.z) * TILE_SIZE) * (e.clientY - drag.y)
-
-	DEFAULT_COORDS.x += xCoordShift
-	DEFAULT_COORDS.y += yCoordShift
-
-	render()
-
-	drag.drag = false
-	drag.x = 0
-	drag.y = 0
-	canvas.style.transform = ""
-})
-
-canvas.addEventListener('click', (e) => {
-	if (!EDITING_STATE.editing) return
-	const { x, y } = pixToGeo(e.clientX, e.clientY)
-	EDITING_STATE.polygon.push([x, y])
-})
-
-
-canvas.addEventListener("wheel", debounce((e) => {
-	if (e.deltaY > 0 && DEFAULT_COORDS.z > 13) {
-		DEFAULT_COORDS.z -= 1
-		render()
-	} else if (e.deltaY < 0 && DEFAULT_COORDS.z < 19) {
-		DEFAULT_COORDS.z += 1
-		render()
-	}
-}, 300))
-
-
-document.querySelector("#edit").addEventListener('click', () => {
-	if (EDITING_STATE.editing) {
-		EDITING_STATE = {
-			editing: false,
-		}
-	} else {
-		EDITING_STATE = {
-			editing: true,
-			polygon: []
-		}
-	}
-})
-
 /**
- * @param {number} x
- * @param {number} y
- * @return {{ x: number, y: number }}
+ * @param {number} W
+ * @param {number} H 
+ * @param {number} xOff
+ * @param {number} yOff
  */
-function pixToGeo(x, y) {
-	const W = document.body.clientWidth
-	const H = document.body.clientHeight
+function debugGrid(W, H, xOff, yOff) {
+	ctx.strokeStyle = "#000"
 
-	const firstTile = latLonToTile(DEFAULT_COORDS)
+	const firstX = W/2 - xOff
+	const firstY = H/2 - yOff
 
-	const centerX = W/2
-	const centerY = H/2
+	const xOffFromScreenCorner = firstX % TILE_SIZE
+	const yOffFromScreenCorner = firstY % TILE_SIZE
 
-	const dx = x - centerX
-	const dy = centerY - y
+	// draw long
+	for (let x = xOffFromScreenCorner; x < W; x += TILE_SIZE) {
+		ctx.moveTo(x, 0)
+		ctx.lineTo(x, H)
+		ctx.stroke()
+	}
 
-	const xCoordShift = 360/(Math.pow(2, DEFAULT_COORDS.z) * TILE_SIZE) * dx
-
-	const currentYinPix = firstTile.y * TILE_SIZE + firstTile.yTileOff
-	const newYinPix = currentYinPix - dy
-
-	const d = 180 / Math.PI
-	const latRad = Math.PI * (1 - 2 * newYinPix / (Math.pow(2, DEFAULT_COORDS.z) * TILE_SIZE));
-	const yNew = (2 * Math.atan(Math.exp(latRad)) - Math.PI / 2) * d;
-
-	return {
-		x: DEFAULT_COORDS.x + xCoordShift,
-		y: yNew
+	// draw lat
+	for (let y = yOffFromScreenCorner; y < H; y += TILE_SIZE) {
+		ctx.moveTo(0, y)
+		ctx.lineTo(W, y)
+		ctx.stroke()
 	}
 }
 
