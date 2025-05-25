@@ -227,11 +227,7 @@ canvas.addEventListener("wheel", debounce((e) => {
 
 document.querySelector("#edit").addEventListener('click', () => {
 	if (EDITING_STATE.editing) {
-		EDITING_STATE = {
-			editing: false,
-		}
-		canvasEditing.style.display = "none"
-
+		onEditingEnd()
 	} else {
 		const storage = localStorage.getItem('zone')
 		EDITING_STATE = {
@@ -270,6 +266,9 @@ window.addEventListener('keydown', (e) => {
 	if (EDITING_STATE.editing && e.ctrlKey && e.key === 'z') {
 		EDITING_STATE.polygon.pop()
 		renderEditing()
+	}
+	if (EDITING_STATE.editing && e.key === 'Escape') {
+		onEditingEnd()
 	}
 });
 
@@ -316,6 +315,13 @@ function mouseNearFirstPoint() {
 	const yDelta = Math.abs((H/2 + firstPix.y) - MOUSE.y)
 
 	return xDelta < 13 && yDelta < 13
+}
+
+function onEditingEnd() {
+	EDITING_STATE = {
+		editing: false,
+	}
+	canvasEditing.style.display = "none"
 }
 
 /**
