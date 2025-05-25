@@ -8,11 +8,22 @@
  *
  * @typedef {[number, number][]} Zone
  *
- * @typedef {{ editing: false } | {editing: true, polygon: Zone}} EditingState
+ * @typedef {
+ 	{ editing: false }
+ 	| {
+		editing: true,
+		polygon: Zone,
+	  }
+  } EditingState
  */
 
 const DEBUG = false
 const TILE_SIZE = 256
+
+const MOUSE = {
+	x: 0,
+	y: 0
+}
 
 /** @type Coord */
 const DEFAULT_COORDS = {
@@ -139,6 +150,11 @@ function drawZone(zone, canvas, W, H) {
 
 render()
 
+document.addEventListener("mousemove", (e) => {
+	MOUSE.x = e.clientX
+	MOUSE.y = e.clientY
+})
+
 canvas.addEventListener("mousedown", (e) => {
 	if (EDITING_STATE.editing) return
 	DRAG_STATE.drag = true
@@ -227,7 +243,7 @@ document.querySelector("#edit").addEventListener('click', () => {
 })
 
 document.querySelector("#clear")?.addEventListener('click', () => {
-	localStorage.clear('zone')
+	localStorage.removeItem('zone')
 })
 
 canvasEditing.addEventListener('click', (e) => {
@@ -237,17 +253,20 @@ canvasEditing.addEventListener('click', (e) => {
 	localStorage.setItem('zone', JSON.stringify(EDITING_STATE.polygon))
 })
 
-canvasEditing.addEventListener("mousemove", (e) => {
+canvasEditing.addEventListener("mousemove", () => {
 	if (!EDITING_STATE.editing) throw new Error('shouldnt happen')
 
-	renderEditing(e.clientX, e.clientY)
+	renderEditing()
 })
 
-/**
- * @param {number} mouseX
- * @param {number} mouseY
- */
-function renderEditing(mouseX, mouseY) {
+window.addEventListener('keydown', (e) => {
+	if (EDITING_STATE.editing && e.ctrlKey && e.key === 'z') {
+		EDITING_STATE.polygon.pop()
+		renderEditing()
+	}
+});
+
+function renderEditing() {
 	if (!EDITING_STATE.editing) return
 
 	const W = document.body.clientWidth
@@ -263,7 +282,7 @@ function renderEditing(mouseX, mouseY) {
 
 	drawZone(EDITING_STATE.polygon, ctxEditing, W, H)
 
-	ctxEditing.lineTo(mouseX, mouseY)
+	ctxEditing.lineTo(MOUSE.x, MOUSE.y)
 	ctxEditing.stroke()
 }
 
