@@ -248,8 +248,15 @@ document.querySelector("#clear")?.addEventListener('click', () => {
 
 canvasEditing.addEventListener('click', (e) => {
 	if (!EDITING_STATE.editing) return
-	const { x, y } = pixToGeo(e.clientX, e.clientY)
-	EDITING_STATE.polygon.push([x, y])
+
+	const stickPoints = mouseNearFirstPoint()
+	if (stickPoints) {
+		EDITING_STATE.polygon.push(EDITING_STATE.polygon[0])
+	} else {
+		const { x, y } = pixToGeo(e.clientX, e.clientY)
+		EDITING_STATE.polygon.push([x, y])
+	}
+
 	localStorage.setItem('zone', JSON.stringify(EDITING_STATE.polygon))
 })
 
@@ -282,8 +289,33 @@ function renderEditing() {
 
 	drawZone(EDITING_STATE.polygon, ctxEditing, W, H)
 
+	const stickPoints = mouseNearFirstPoint()
+	if (stickPoints) {
+		const first = EDITING_STATE.polygon[0]
+		const firstPix = geoToPix(first[0], first[1])
+		ctxEditing.lineTo(W/2 + firstPix.x, H/2 + firstPix.y)
+		ctxEditing.stroke()
+		return
+	}
 	ctxEditing.lineTo(MOUSE.x, MOUSE.y)
 	ctxEditing.stroke()
+}
+
+/**
+ * Assumes that map can't be zoomed or moved while editing
+ */
+function mouseNearFirstPoint() {
+	if (!EDITING_STATE.editing) throw new Error('shouldnt happen')
+	const W = document.body.clientWidth
+	const H = document.body.clientHeight
+
+	const first = EDITING_STATE.polygon[0]
+	const firstPix = geoToPix(first[0], first[1])
+
+	const xDelta = Math.abs((W/2 + firstPix.x) - MOUSE.x)
+	const yDelta = Math.abs((H/2 + firstPix.y) - MOUSE.y)
+
+	return xDelta < 13 && yDelta < 13
 }
 
 /**
