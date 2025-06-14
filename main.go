@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/witcher-development/deadzone/db"
 	frontendlib "github.com/witcher-development/deadzone/modules/frontend_lib"
+	zone "github.com/witcher-development/deadzone/modules/zone"
 )
 
 
@@ -23,6 +24,8 @@ func main() {
   static.Static("/static", "./static")
 
   client := &http.Client{}
+
+
 
   r.GET("tile/:z/:x/:y", func(ctx *gin.Context) {
     z := ctx.Param("z")
@@ -60,7 +63,7 @@ func main() {
     frontendlib.Page().Render(context.Background(), ctx.Writer)
   })
 
-  // events.Routes(r)
+  zone.Routes(r)
 
   r.Run()
 }

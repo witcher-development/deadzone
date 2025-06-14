@@ -229,7 +229,8 @@ document.querySelector("#edit").addEventListener('click', () => {
 	if (EDITING_STATE.editing) {
 		onEditingEnd()
 	} else {
-		const storage = localStorage.getItem('zone')
+		// const storage = localStorage.getItem('zone')
+		const storage = false
 		EDITING_STATE = {
 			editing: true,
 			polygon: storage ? JSON.parse(storage) : []
@@ -248,6 +249,13 @@ canvasEditing.addEventListener('click', (e) => {
 	const stickPoints = mouseNearFirstPoint()
 	if (stickPoints) {
 		EDITING_STATE.polygon.push(EDITING_STATE.polygon[0])
+		const polygon = EDITING_STATE.polygon
+		EDITING_STATE = { editing: false } 
+
+		fetch("http://localhost:8080/zone", {
+			method: "POST",
+			body: JSON.stringify(polygon)
+		})
 	} else {
 		const { x, y } = pixToGeo(e.clientX, e.clientY)
 		EDITING_STATE.polygon.push([x, y])
@@ -305,6 +313,7 @@ function renderEditing() {
  */
 function mouseNearFirstPoint() {
 	if (!EDITING_STATE.editing) throw new Error('shouldnt happen')
+	if (EDITING_STATE.polygon.length === 0) return
 	const W = document.body.clientWidth
 	const H = document.body.clientHeight
 
