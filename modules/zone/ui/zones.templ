@@ -1,0 +1,18 @@
+package zone_ui
+
+import (
+	model "github.com/witcher-development/deadzone/modules/zone/model"
+)
+
+templ Zones(zones []model.Zone) {
+<div class="zones" id="zones">
+	<ul>
+		for _, zone := range zones {
+		<li>
+			{ zone.Id }
+		</li>
+		}
+	</ul>
+
+</div>
+}

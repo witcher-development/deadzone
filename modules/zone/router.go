@@ -5,11 +5,13 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/a-h/templ"
 	"github.com/gin-gonic/gin"
 	"github.com/witcher-development/deadzone/db"
+
+	frontendlib "github.com/witcher-development/deadzone/modules/frontend_lib"
 	ui "github.com/witcher-development/deadzone/modules/zone/ui"
 )
-
 
 func Routes(route *gin.Engine) {
 	r := route.Group("/zone")
@@ -30,12 +32,24 @@ func Routes(route *gin.Engine) {
 
 	})
 
-	r.GET("", func(ctx *gin.Context) {
-		zones, err := GetAll()
-		if err != nil {
-			http.Error(ctx.Writer, "", http.StatusInternalServerError)
+	r.GET("", func(r *gin.Context) {
+		wrap := true
+		if query := r.Query("w"); query == "f" {
+			wrap = false
 		}
 
-		ui.ZonesJSON(zones).Render(context.Background(), ctx.Writer)
+		zones, err := GetAll()
+		if err != nil {
+			http.Error(r.Writer, "", http.StatusInternalServerError)
+			return
+		}
+
+		joined := templ.Join(ui.Zones(zones), ui.ZonesJSON(zones))
+		if (wrap) {
+			ctx := templ.WithChildren(context.Background(), joined)
+			frontendlib.Page().Render(ctx, r.Writer)
+		} else {
+			joined.Render(context.Background(), r.Writer)
+		}
 	})
 }

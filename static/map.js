@@ -261,6 +261,8 @@ canvasEditing.addEventListener('click', (e) => {
 			method: "POST",
 			body: JSON.stringify(polygon)
 		})
+		document.querySelector("#refetch").click()
+		setTimeout(render, 1000)
 	} else {
 		const { x, y } = pixToGeo(e.clientX, e.clientY)
 		EDITING_STATE.polygon.push([x, y])

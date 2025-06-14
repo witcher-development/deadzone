@@ -6,6 +6,13 @@ templ Map() {
 <div class="map-tools">
 	<button id="edit" class="map-tools_edit">E</button>
 	<button id="clear" class="map-tools_edit">C</button>
+	<button 
+		hidden 
+		id="refetch"
+		hx-get="/zone?w=f"
+		hx-target="#zones"
+		hx-swap="outerHTML"
+	></button>
 </div>
 <script src="/static/map.js"></script>
 }
