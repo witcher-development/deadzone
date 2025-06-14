@@ -1,12 +1,13 @@
 package zone
 
 import (
-	"fmt"
+	"context"
 	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/witcher-development/deadzone/db"
+	ui "github.com/witcher-development/deadzone/modules/zone/ui"
 )
 
 
@@ -23,17 +24,18 @@ func Routes(route *gin.Engine) {
 
 		_, err = db.Exec(CreateOperation, string(body))
 		if err != nil {
-			fmt.Println(err)
 			http.Error(ctx.Writer, "", http.StatusInternalServerError)
 			return
 		}
 
-		// event, err := GetEvent(id)
-		// if err != nil {
-		// 	http.Error(ctx.Writer, "", http.StatusInternalServerError)
-		// 	return
-		// }
-		//
-		// ui.Page(event).Render(context.Background(), ctx.Writer)
+	})
+
+	r.GET("", func(ctx *gin.Context) {
+		zones, err := GetAll()
+		if err != nil {
+			http.Error(ctx.Writer, "", http.StatusInternalServerError)
+		}
+
+		ui.ZonesJSON(zones).Render(context.Background(), ctx.Writer)
 	})
 }

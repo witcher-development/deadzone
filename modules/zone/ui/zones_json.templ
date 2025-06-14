@@ -1,0 +1,23 @@
+package zone_ui
+
+import (
+	"encoding/json"
+	frontendlib "github.com/witcher-development/deadzone/modules/frontend_lib"
+	model "github.com/witcher-development/deadzone/modules/zone/model"
+)
+
+func ToJson(zones []model.Zone) string {
+	bytes, err := json.Marshal(zones)
+	if err != nil {
+		panic(err)
+	}
+	return string(bytes)
+}
+
+templ ZonesJSON(zones []model.Zone) {
+@frontendlib.Page() {
+<script id="zones-json">
+	const ZONES_DATA = {{ ToJson(zones) }}
+</script>
+}
+}

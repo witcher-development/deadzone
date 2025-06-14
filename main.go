@@ -1,14 +1,14 @@
 package main
 
 import (
-	"context"
+	// "context"
 	"fmt"
 	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/witcher-development/deadzone/db"
-	frontendlib "github.com/witcher-development/deadzone/modules/frontend_lib"
+	// frontendlib "github.com/witcher-development/deadzone/modules/frontend_lib"
 	zone "github.com/witcher-development/deadzone/modules/zone"
 )
 
@@ -60,7 +60,8 @@ func main() {
   })
 
   r.GET("", func(ctx *gin.Context) {
-    frontendlib.Page().Render(context.Background(), ctx.Writer)
+    ctx.Redirect(301, "/zone")
+    // frontendlib.Page().Render(context.Background(), ctx.Writer)
   })
 
   zone.Routes(r)

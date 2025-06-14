@@ -98,6 +98,12 @@ function render() {
 		}, 2000)
 	}
 
+	setTimeout(() => {
+		JSON.parse(ZONES_DATA).forEach((zone) => {
+			console.log(JSON.parse(zone.Polygon))
+			drawZone(JSON.parse(zone.Polygon), ctx, W, H)
+		})
+	}, 1000)
 }
 
 /**
