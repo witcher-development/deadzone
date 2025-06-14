@@ -99,7 +99,7 @@ function render() {
 	}
 
 	setTimeout(() => {
-		JSON.parse(ZONES_DATA).forEach((zone) => {
+		getZonesData().forEach((zone) => {
 			drawZone(JSON.parse(zone.Polygon), ctx, W, H)
 		})
 	}, 1000)
@@ -257,12 +257,11 @@ canvasEditing.addEventListener('click', (e) => {
 		const polygon = EDITING_STATE.polygon
 		onEditingEnd()
 
-		fetch("http://localhost:8080/zone", {
+		fetch("/zone", {
 			method: "POST",
 			body: JSON.stringify(polygon)
 		})
 		document.querySelector("#refetch").click()
-		setTimeout(render, 1000)
 	} else {
 		const { x, y } = pixToGeo(e.clientX, e.clientY)
 		EDITING_STATE.polygon.push([x, y])
@@ -339,6 +338,18 @@ function onEditingEnd() {
 	}
 	canvasEditing.style.display = "none"
 }
+
+const dataTag = document.querySelector("#zones-data")
+const dataObserver = new MutationObserver(() => {
+	render()
+})
+dataObserver.observe(dataTag, { characterData: true, childList: true })
+
+function getZonesData() {
+	return JSON.parse(JSON.parse(document.querySelector("#zones-data").textContent))
+}
+
+// -------- GEOHELPERS
 
 /**
  * @param {number} x
@@ -436,6 +447,9 @@ function getTileData({ x, y, z }, callback) {
 			cache.set(key, bitmap)
 		})
 }
+
+
+// -------- HELPERS
 
 /**
  * @param {number} W

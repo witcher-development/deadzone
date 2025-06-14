@@ -14,7 +14,7 @@ func toJson(zones []model.Zone) string {
 }
 
 templ ZonesJSON(zones []model.Zone) {
-<script id="zones-data" hx-swap-oob="true">
-	var ZONES_DATA = {{ toJson(zones) }}
+<script id="zones-data" hx-swap-oob="textContent">
+	{{ toJson(zones) }}
 </script>
 }
