@@ -339,6 +339,8 @@ function onEditingEnd() {
 	canvasEditing.style.display = "none"
 }
 
+// --------- SERVERDATA
+
 const dataTag = document.querySelector("#zones-data")
 const dataObserver = new MutationObserver(() => {
 	render()

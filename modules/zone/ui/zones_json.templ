@@ -6,6 +6,9 @@ import (
 )
 
 func toJson(zones []model.Zone) string {
+	if len(zones) == 0 {
+		return "[]"
+	}
 	bytes, err := json.Marshal(zones)
 	if err != nil {
 		panic(err)

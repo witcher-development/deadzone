@@ -14,6 +14,9 @@ import (
 )
 
 func toJson(zones []model.Zone) string {
+	if len(zones) == 0 {
+		return "[]"
+	}
 	bytes, err := json.Marshal(zones)
 	if err != nil {
 		panic(err)
@@ -48,7 +51,7 @@ func ZonesJSON(zones []model.Zone) templ.Component {
 		}
 		templ_7745c5c3_Var2, templ_7745c5c3_Err := templruntime.ScriptContentOutsideStringLiteral(toJson(zones))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `modules/zone/ui/zones_json.templ`, Line: 18, Col: 17}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `modules/zone/ui/zones_json.templ`, Line: 21, Col: 17}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
 		if templ_7745c5c3_Err != nil {
