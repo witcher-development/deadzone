@@ -7,7 +7,7 @@ body {
 }
 
 a {
-	color: white
+	cursor: pointer;
 }
 
 #map {

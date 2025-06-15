@@ -26,3 +26,16 @@ func GetAll() ([]model.Zone, error) {
 	
 	return zones, nil
 }
+
+
+func GetOne(id int) (model.Zone, error) {
+	db := db.GetDB()
+
+	var zone model.Zone
+	row := db.QueryRow(GetOneOperation, id)
+	if err := row.Scan(&zone.Id, &zone.Polygon); err != nil {
+		return zone, err
+	}
+
+	return zone, nil
+}

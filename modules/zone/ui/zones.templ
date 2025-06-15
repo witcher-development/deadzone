@@ -1,18 +1,38 @@
 package zone_ui
 
 import (
+	"fmt"
 	model "github.com/witcher-development/deadzone/modules/zone/model"
 )
 
 templ Zones(zones []model.Zone) {
 <div class="zones" id="zones">
+	if len(zones) == 1 {
+	<a 
+		hx-get="/zone?w=f"
+		hx-target="#zones"
+		hx-swap="innerHTML"
+		hx-replace-url="/zone"
+		class="block"
+		>
+		Back
+	</a>
+	Zone: {zones[0].Id}
+	} else {
 	<ul>
 		for _, zone := range zones {
 		<li>
-			{ zone.Id }
+			<a 
+				hx-get={ templ.URL(fmt.Sprintf("/zone/%d?w=f", zone.Id)) }
+				hx-target="#zones"
+				hx-swap="innerHTML"
+				hx-replace-url={fmt.Sprintf("/zone/%d", zone.Id)}
+			>
+				{ zone.Id }
+			</a>
 		</li>
 		}
 	</ul>
-
+	}
 </div>
 }

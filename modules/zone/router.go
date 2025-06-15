@@ -4,12 +4,14 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/a-h/templ"
 	"github.com/gin-gonic/gin"
 	"github.com/witcher-development/deadzone/db"
 
 	frontendlib "github.com/witcher-development/deadzone/modules/frontend_lib"
+	model "github.com/witcher-development/deadzone/modules/zone/model"
 	ui "github.com/witcher-development/deadzone/modules/zone/ui"
 )
 
@@ -51,6 +53,43 @@ func Routes(route *gin.Engine) {
 		)
 		if (wrap) {
 			joined2 := templ.Join(joined, ui.Map())
+			ctx := templ.WithChildren(context.Background(), joined2)
+			frontendlib.Page().Render(ctx, r.Writer)
+		} else {
+			joined.Render(context.Background(), r.Writer)
+		}
+	})
+
+	r.GET(":id", func(r *gin.Context) {
+		idS := r.Param("id")
+		wrap := true
+		if query := r.Query("w"); query == "f" {
+			wrap = false
+		}
+
+		id, err := strconv.Atoi(idS)
+		if err != nil {
+			http.Error(r.Writer, "", http.StatusInternalServerError)
+			return
+		}
+
+		zone, err := GetOne(id)
+		if err != nil {
+			http.Error(r.Writer, "", http.StatusInternalServerError)
+			return
+		}
+
+		zones := []model.Zone{zone}
+		joined := templ.Join(
+			ui.Zones(zones),
+		)
+		if (wrap) {
+			joined2 := templ.Join(
+				ui.Zones(zones),
+				ui.ZonesJSON(zones),
+				ui.MapMarkers(zones),
+				ui.Map(),
+				)
 			ctx := templ.WithChildren(context.Background(), joined2)
 			frontendlib.Page().Render(ctx, r.Writer)
 		} else {
