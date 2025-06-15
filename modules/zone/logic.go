@@ -14,7 +14,7 @@ func GetAll() ([]model.Zone, error) {
 	}
 	defer rows.Close()
 
-	var zones []model.Zone
+	var zones = []model.Zone{}
 
 	for rows.Next() {
 		var zone model.Zone

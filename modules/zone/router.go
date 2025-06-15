@@ -44,9 +44,14 @@ func Routes(route *gin.Engine) {
 			return
 		}
 
-		joined := templ.Join(ui.Zones(zones), ui.ZonesJSON(zones))
+		joined := templ.Join(
+			ui.Zones(zones),
+			ui.ZonesJSON(zones),
+			ui.MapMarkers(zones),
+		)
 		if (wrap) {
-			ctx := templ.WithChildren(context.Background(), joined)
+			joined2 := templ.Join(joined, ui.Map())
+			ctx := templ.WithChildren(context.Background(), joined2)
 			frontendlib.Page().Render(ctx, r.Writer)
 		} else {
 			joined.Render(context.Background(), r.Writer)

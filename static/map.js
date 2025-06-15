@@ -6,13 +6,15 @@
  * @property {number} yTileOff
  * @property {number} z
  *
- * @typedef {[number, number][]} Zone
+ * @typedef {Object} Zone
+ * @property {[number, number][]} Polygon
+ * @property {number} Id
  *
  * @typedef {
  	{ editing: false }
  	| {
 		editing: true,
-		polygon: Zone,
+		polygon: Zone['Polygon'],
 	  }
   } EditingState
  */
@@ -99,9 +101,11 @@ function render() {
 	}
 
 	setTimeout(() => {
-		getZonesData().forEach((zone) => {
-			drawZone(JSON.parse(zone.Polygon), ctx, W, H)
+		const data = getZonesData()
+		data.forEach((zone) => {
+			drawZone(zone.Polygon, ctx, W, H)
 		})
+		drawMarkers(data)
 	}, 1000)
 }
 
@@ -136,13 +140,13 @@ function drawBottom(W, H, yOff, cursor) {
 }
 
 /**
- * @param {Zone} zone
+ * @param {Zone['Polygon']} polygon
  * @param {CanvasRenderingContext2D} canvas
  * @param {number} W
  * @param {number} H
  */
-function drawZone(zone, canvas, W, H) {
-	zone.forEach(([x, y], i) => {
+function drawZone(polygon, canvas, W, H) {
+	polygon.forEach(([x, y], i) => {
 		const point = geoToPix(x, y)
 		if (i === 0) {
 			canvas.moveTo(point.x + W/2, point.y + H/2)
@@ -150,6 +154,24 @@ function drawZone(zone, canvas, W, H) {
 		}
 		canvas.lineTo(point.x + W/2, point.y + H/2)
 		canvas.stroke()
+	})
+}
+
+/**
+ * @param {Zone[]} zones
+ */
+function drawMarkers(zones) {
+	const W = document.body.clientWidth
+	const H = document.body.clientHeight
+
+	zones.forEach((zone) => {
+		const [x, y] = zone.Polygon[0]
+		const point = geoToPix(x, y)
+
+		const marker = document.querySelector(`#marker-${zone.Id}`)
+		marker.removeAttribute('hidden')
+		marker.style.left = point.x + W/2 + "px"
+		marker.style.top = point.y + H/2 + "px"
 	})
 }
 
@@ -230,6 +252,47 @@ canvas.addEventListener("wheel", debounce((e) => {
 }, 300))
 
 
+
+window.addEventListener('keydown', (e) => {
+	if (EDITING_STATE.editing && e.ctrlKey && e.key === 'z') {
+		EDITING_STATE.polygon.pop()
+		renderEditing()
+	}
+	if (EDITING_STATE.editing && e.key === 'Escape') {
+		onEditingEnd()
+	}
+});
+
+// --------------- EDITING
+
+function renderEditing() {
+	if (!EDITING_STATE.editing) return
+
+	const W = document.body.clientWidth
+	const H = document.body.clientHeight
+	canvasEditing.width = W
+	canvasEditing.height = H
+
+	ctxEditing.clearRect(0, 0, W, H)
+
+	if (!EDITING_STATE.polygon.length) return
+
+	ctxEditing.strokeStyle = "#000"
+
+	drawZone(EDITING_STATE.polygon, ctxEditing, W, H)
+
+	const stickPoints = mouseNearFirstPoint()
+	if (stickPoints) {
+		const first = EDITING_STATE.polygon[0]
+		const firstPix = geoToPix(first[0], first[1])
+		ctxEditing.lineTo(W/2 + firstPix.x, H/2 + firstPix.y)
+		ctxEditing.stroke()
+		return
+	}
+	ctxEditing.lineTo(MOUSE.x, MOUSE.y)
+	ctxEditing.stroke()
+}
+
 document.querySelector("#edit").addEventListener('click', () => {
 	if (EDITING_STATE.editing) {
 		onEditingEnd()
@@ -244,7 +307,7 @@ document.querySelector("#edit").addEventListener('click', () => {
 	}
 })
 
-document.querySelector("#clear")?.addEventListener('click', () => {
+document.querySelector("#clear").addEventListener('click', () => {
 	localStorage.removeItem('zone')
 })
 
@@ -276,44 +339,6 @@ canvasEditing.addEventListener("mousemove", () => {
 	renderEditing()
 })
 
-window.addEventListener('keydown', (e) => {
-	if (EDITING_STATE.editing && e.ctrlKey && e.key === 'z') {
-		EDITING_STATE.polygon.pop()
-		renderEditing()
-	}
-	if (EDITING_STATE.editing && e.key === 'Escape') {
-		onEditingEnd()
-	}
-});
-
-function renderEditing() {
-	if (!EDITING_STATE.editing) return
-
-	const W = document.body.clientWidth
-	const H = document.body.clientHeight
-	canvasEditing.width = W
-	canvasEditing.height = H
-
-	ctxEditing.clearRect(0, 0, W, H)
-
-	if (!EDITING_STATE.polygon.length) return
-
-	ctxEditing.strokeStyle = "#000"
-
-	drawZone(EDITING_STATE.polygon, ctxEditing, W, H)
-
-	const stickPoints = mouseNearFirstPoint()
-	if (stickPoints) {
-		const first = EDITING_STATE.polygon[0]
-		const firstPix = geoToPix(first[0], first[1])
-		ctxEditing.lineTo(W/2 + firstPix.x, H/2 + firstPix.y)
-		ctxEditing.stroke()
-		return
-	}
-	ctxEditing.lineTo(MOUSE.x, MOUSE.y)
-	ctxEditing.stroke()
-}
-
 /**
  * Assumes that map can't be zoomed or moved while editing
  */
@@ -341,14 +366,21 @@ function onEditingEnd() {
 
 // --------- SERVERDATA
 
-const dataTag = document.querySelector("#zones-data")
+const dataTag = (document.querySelector("#zones-data"))
 const dataObserver = new MutationObserver(() => {
 	render()
 })
 dataObserver.observe(dataTag, { characterData: true, childList: true })
 
+/**
+ * @return {Zone[]}
+ */
 function getZonesData() {
-	return JSON.parse(JSON.parse(document.querySelector("#zones-data").textContent))
+	const data = /** @type any[] */ (JSON.parse(JSON.parse(dataTag.innerHTML)))
+	return data.map((zone) => ({
+		...zone,
+		Polygon: JSON.parse(zone.Polygon)
+	}))
 }
 
 // -------- GEOHELPERS
@@ -433,12 +465,13 @@ function geoToTile({ x, y, z }) {
 
 /**
  * @param {Coord} coord 
- * @param {(image: HTMLImageElement | ImageBitmap) => void} callback
+ * @param {(image: ImageBitmap) => void} callback
  */
 function getTileData({ x, y, z }, callback) {
 	const key = `${x}-${y}-${z}`
-	if (cache.has(key)) {
-		callback(cache.get(key))
+	const item = cache.get(key)
+	if (item) {
+		callback(item)
 		return
 	}
 	fetch(`/tile/${z}/${x}/${y}`)
