@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * @typedef {Object} Coord
  * @property {number} x
@@ -102,6 +103,7 @@ function render() {
 
 	setTimeout(() => {
 		const data = getZonesData()
+		console.log(data)
 		data.forEach((zone) => {
 			drawZone(zone.Polygon, ctx, W, H)
 		})
@@ -366,7 +368,7 @@ function onEditingEnd() {
 
 // --------- SERVERDATA
 
-const dataTag = (document.querySelector("#zones-data"))
+const dataTag = document.querySelector("#zones-data")
 const dataObserver = new MutationObserver(() => {
 	render()
 })
@@ -376,12 +378,22 @@ dataObserver.observe(dataTag, { characterData: true, childList: true })
  * @return {Zone[]}
  */
 function getZonesData() {
-	const data = /** @type any[] */ (JSON.parse(JSON.parse(dataTag.innerHTML)))
+	// const data = /** @type any[] */ (JSON.parse(JSON.parse(dataTag.innerHTML)))
+	const test = dataTag.textContent
+	const data = JSON.parse(test)
 	return data.map((zone) => ({
 		...zone,
 		Polygon: JSON.parse(zone.Polygon)
 	}))
 }
+
+document.body.addEventListener("delete-zone", (e) => {
+	/** @type string */
+	const id = e.detail.value
+	const currentData = getZonesData()
+	const newData = currentData.filter((zone) => zone.Id !== Number(id)).map(JSON.stringify)
+	dataTag.innerText = JSON.stringify(newData)
+})
 
 // -------- GEOHELPERS
 

@@ -32,10 +32,17 @@ func GetOne(id int) (model.Zone, error) {
 	db := db.GetDB()
 
 	var zone model.Zone
-	row := db.QueryRow(GetOneOperation, id)
+	row := db.QueryRow(DeleteOneOperation, id)
 	if err := row.Scan(&zone.Id, &zone.Polygon); err != nil {
 		return zone, err
 	}
 
 	return zone, nil
+}
+
+func DeleteOne(id int) error {
+	db := db.GetDB()
+
+	_, err := db.Exec(DeleteOneOperation, id)
+	return err
 }

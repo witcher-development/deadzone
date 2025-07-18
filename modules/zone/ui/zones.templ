@@ -30,6 +30,13 @@ templ Zones(zones []model.Zone) {
 			>
 				{ zone.Id }
 			</a>
+
+			<button
+				hx-delete={ templ.URL(fmt.Sprintf("/zone/%d", zone.Id)) }
+				hx-target="closest li"
+			>
+				D
+			</button>
 		</li>
 		}
 	</ul>

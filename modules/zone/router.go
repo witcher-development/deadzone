@@ -2,6 +2,7 @@ package zone
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -95,5 +96,42 @@ func Routes(route *gin.Engine) {
 		} else {
 			joined.Render(context.Background(), r.Writer)
 		}
+	})
+
+	r.DELETE(":id", func(r *gin.Context) {
+		idS := r.Param("id")
+
+		id, err := strconv.Atoi(idS)
+		if err != nil {
+			http.Error(r.Writer, "", http.StatusInternalServerError)
+			return
+		}
+
+		// err = DeleteOne(id)
+		// if err != nil {
+		// 	http.Error(r.Writer, "", http.StatusInternalServerError)
+		// 	return
+		// }
+
+		// r.Status()
+		r.Header("HX-Trigger", fmt.Sprintf("{\"delete-zone\": \"%d\"}", id))
+		r.Data(http.StatusOK, gin.MIMEHTML, nil)
+
+		// zones := []model.Zone{zone}
+		// joined := templ.Join(
+		// 	ui.Zones(zones),
+		// )
+		// if (wrap) {
+		// 	joined2 := templ.Join(
+		// 		ui.Zones(zones),
+		// 		ui.ZonesJSON(zones),
+		// 		ui.MapMarkers(zones),
+		// 		ui.Map(),
+		// 		)
+		// 	ctx := templ.WithChildren(context.Background(), joined2)
+		// 	frontendlib.Page().Render(ctx, r.Writer)
+		// } else {
+		// 	joined.Render(context.Background(), r.Writer)
+		// }
 	})
 }

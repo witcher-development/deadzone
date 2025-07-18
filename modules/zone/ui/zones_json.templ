@@ -3,6 +3,7 @@ package zone_ui
 import (
 	"encoding/json"
 	model "github.com/witcher-development/deadzone/modules/zone/model"
+	"fmt"
 )
 
 func toJson(zones []model.Zone) string {
@@ -10,11 +11,22 @@ func toJson(zones []model.Zone) string {
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println(string(bytes))
 	return string(bytes)
+}
+
+templ TestJSON(child templ.Component) {
+<script id="zones-data" hx-swap-oob="textContent">
+	@child
+</script>
+}
+
+templ TestJSON2(zones []model.Zone) {
+{{ templ.JSONString(zones) }}
 }
 
 templ ZonesJSON(zones []model.Zone) {
 <script id="zones-data" hx-swap-oob="textContent">
-	{{ toJson(zones) }}
+	@TestJSON2(zones)
 </script>
 }

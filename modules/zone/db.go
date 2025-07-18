@@ -11,3 +11,6 @@ var GetAllOperation string
 
 //go:embed sql/get_one.sql
 var GetOneOperation string
+
+//go:embed sql/delete_one.sql
+var DeleteOneOperation string
